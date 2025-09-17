@@ -2,13 +2,21 @@ import { db } from "@/config/db";
 import { SessionChatTable } from "@/config/schema";
 import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
-import { currentUser } from "@clerk/nextjs/server";
+import { currentUser, type User } from "@clerk/nextjs/server";
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }): Promise<Response> {
     const reportId = params.id;
     
     try {
-        const user = await currentUser();
+        let user: User | null = null;
+        try {
+            user = await currentUser();
+        } catch (authError) {
+            console.error("Auth check error:", authError);
+            return NextResponse.json({ error: "Authentication error" }, { status: 401 });
+        }
 
         if (!user) {
             return NextResponse.json({ error: "User not authenticated" }, { status: 401 });

@@ -1,14 +1,14 @@
 import { db } from "@/config/db";
 import { SessionChatTable } from "@/config/schema";
 import { NextResponse } from "next/server";
-import { currentUser } from "@clerk/nextjs/server";
+import { currentUser, type User } from "@clerk/nextjs/server";
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(): Promise<Response> {
     try {
         // Try to get current user, but don't fail if not available
-        let user;
+        let user: User | null = null;
         try {
             user = await currentUser();
         } catch (authError) {

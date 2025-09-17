@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/config/db";
 import { SessionChatTable } from "@/config/schema";
 import { eq, desc } from "drizzle-orm";
-import { currentUser } from "@clerk/nextjs/server";
+import { currentUser, type User } from "@clerk/nextjs/server";
 
 export const dynamic = 'force-dynamic';
 
@@ -34,7 +34,7 @@ export async function GET(req: NextRequest): Promise<Response> {
         const sessionId = searchParams.get('sessionId') || '';
         
         // Try to get the user but don't fail if not available (for build process)
-        let user;
+        let user: User | null = null;
         try {
             user = await currentUser();
         } catch (authError) {
