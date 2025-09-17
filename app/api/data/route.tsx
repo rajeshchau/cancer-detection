@@ -57,7 +57,8 @@ export async function GET(req: NextRequest): Promise<Response> {
             return NextResponse.json([]);
         }
 
-        // const userId = user.id; // Cache user.id to ensure it's non-null for all uses below
+        // Store user ID to avoid type errors later
+        const userId = user.id;
 
         if (sessionId === "all") {
             try {
@@ -85,7 +86,7 @@ export async function GET(req: NextRequest): Promise<Response> {
                         evidence: reportData.evidence || '',
                         extractedText: reportData.extractedText || '',
                         sessionId: item.sessionId,
-                        userId: user.id
+                        userId: userId
                     };
                 });
             } catch (dbError) {
@@ -119,7 +120,7 @@ export async function GET(req: NextRequest): Promise<Response> {
                         evidence: reportData.evidence || '',
                         extractedText: reportData.extractedText || '',
                         sessionId: item.sessionId,
-                        userId: user.id
+                        userId: userId
                     };
                 });
             } catch (dbError) {
