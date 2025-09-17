@@ -53,9 +53,11 @@ export async function GET(req: NextRequest): Promise<Response> {
         let reports: Report[] = [];
 
         // For build time or when no user is available, return empty array
-        if (!user) {
+        if (!user || !user.id) {
             return NextResponse.json([]);
         }
+
+        // const userId = user.id; // Cache user.id to ensure it's non-null for all uses below
 
         if (sessionId === "all") {
             try {
