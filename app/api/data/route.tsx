@@ -4,7 +4,7 @@ import { SessionChatTable } from "@/config/schema";
 import { eq, desc } from "drizzle-orm";
 import { currentUser } from "@clerk/nextjs/server";
 
-export async function GET(req: NextRequest) {
+export async function GET(req: NextRequest): Promise<Response> {
     try {
         const { searchParams } = new URL(req.url);
         const sessionId = searchParams.get('sessionId') || '';

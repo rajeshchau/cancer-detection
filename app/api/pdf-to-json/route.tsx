@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PdfReader } from "pdfreader";
 
-export async function POST(req: NextRequest) {
+export async function POST(req: NextRequest): Promise<Response> {
   try {
     const formData = await req.formData();
     const file = formData.get("pdf") as File;
@@ -12,21 +12,44 @@ export async function POST(req: NextRequest) {
     let textByPage: Record<string, string[]> = {};
     let pageIndex = 1;
 
-    return new Promise((resolve) => {
-      new PdfReader().parseBuffer(buffer, (err, item) => {
+    return new Promise<Response>((resolve, reject) => {
+      const pdfReader = new PdfReader();
+      
+      pdfReader.parseBuffer(buffer, (err, item) => {
         if (err) {
           resolve(NextResponse.json({ error: err }, { status: 500 }));
-        } else if (!item) {
-          resolve(NextResponse.json(textByPage));
-        } else if (item.page) {
+          return;
+        } 
+        
+        if (!item) {
+          // End of file - process complete
+          resolve(NextResponse.json({ 
+            success: true, 
+            text: textByPage,
+            // Also include concatenated text for easier processing
+            extractedText: Object.values(textByPage)
+              .map(lines => lines.join(' '))
+              .join('\n\n')
+          }));
+          return;
+        }
+        
+        if (item.page) {
           pageIndex = item.page;
           textByPage[`page_${pageIndex}`] = [];
         } else if (item.text) {
+          if (!textByPage[`page_${pageIndex}`]) {
+            textByPage[`page_${pageIndex}`] = [];
+          }
           textByPage[`page_${pageIndex}`].push(item.text);
         }
       });
     });
   } catch (e) {
-    return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 });
+    console.error("PDF processing error:", e);
+    return NextResponse.json({ 
+      success: false,
+      error: e instanceof Error ? e.message : String(e) 
+    }, { status: 500 });
   }
 }

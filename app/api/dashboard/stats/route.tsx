@@ -4,7 +4,7 @@ import { sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { currentUser } from "@clerk/nextjs/server";
 
-export async function GET() {
+export async function GET(): Promise<Response> {
     try {
         const user = await currentUser();
 

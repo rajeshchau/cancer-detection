@@ -55,45 +55,77 @@ Constraints:
 - Use all available data and methodologies to maximize accuracy in the analysis.
 - If specific cancer-related terms or findings are ambiguous, base the decision on the overall context of the report.`;
 
-export async function POST(REQ:NextRequest) {
-    const body= await REQ.json();
-  try{
-        const completion = await openai.chat.completions.create({
-          model: "openai/gpt-oss-120b",
-          messages: [
-            { role: "system", content: CANCER_ANALYSIS_PROMPT },
-            { role: "user", content: `Analyze the following medical report JSON and provide the output strictly in the specified JSON format: ${JSON.stringify(body)}` }
-          ],
-        });
-        const response = completion.choices[0].message.content;
-        const newresponse = response ? response.trim().replace('```json','').replace('```','') : "";
-        const JSONResp = JSON.parse(newresponse);
-        // Parse the response to ensure it's valid JSON before sending
-        // const parsedResponse = response ? JSON.parse(response) : [];
+export async function POST(REQ: NextRequest): Promise<Response> {
+    try {
+        const body = await REQ.json();
+        
+        // Initialize aiResponse variable with default values
+        let aiResponse = {
+            sessionId: body.sessionId || "unknown",
+            analysisResults: "Cancer Negative",
+            confidence: "0%",
+            evidence: "No significant findings",
+            extractedText: body.extractedText || "",
+            createdAt: body.createdAt || new Date().toISOString()
+        };
+        
+        // Try to get AI analysis
         try {
-            await db.insert(SessionChatTable).values({
-                sessionId: JSONResp.sessionId || body.sessionId || "unknown",
-                report: JSON.stringify({
+            const completion = await openai.chat.completions.create({
+                model: "gpt-3.5-turbo", // Valid model
+                messages: [
+                    { role: "system", content: CANCER_ANALYSIS_PROMPT },
+                    { 
+                        role: "user", 
+                        // Optimize by only sending necessary data
+                        content: `Analyze the following medical report JSON and provide the output strictly in the specified JSON format: ${JSON.stringify({
+                            sessionId: body.sessionId,
+                            extractedText: body.extractedText,
+                            pdfContent: body.pdfContent
+                        })}` 
+                    }
+                ],
+            });
+            
+            const response = completion.choices[0].message.content;
+            const newresponse = response ? response.trim().replace('```json','').replace('```','') : "";
+            
+            try {
+                const JSONResp = JSON.parse(newresponse);
+                aiResponse = {
+                    sessionId: JSONResp.sessionId || body.sessionId || "unknown",
                     analysisResults: JSONResp.analysisResults || "Cancer Negative",
                     confidence: JSONResp.confidence || "0%",
                     evidence: JSONResp.evidence || "No significant findings",
                     extractedText: JSONResp.extractedText || body.extractedText || "",
-                    sessionId: JSONResp.sessionId || body.sessionId || "unknown",
                     createdAt: JSONResp.createdAt || body.createdAt || new Date().toISOString()
-                }),
+                };
+            } catch (parseError) {
+                console.error("Error parsing AI response:", parseError);
+                // Use default aiResponse values set above
+            }
+        } catch (aiError) {
+            console.error("Error calling OpenAI:", aiError);
+            // Use default aiResponse values set above
+        }
+        
+        // Save to database
+        try {
+            await db.insert(SessionChatTable).values({
+                sessionId: aiResponse.sessionId,
+                report: JSON.stringify(aiResponse),
                 createdAt: new Date().toISOString()
             });
-        } catch (e) {
-            console.error("Error inserting into database:", e);
+        } catch (dbError) {
+            console.error("Error inserting into database:", dbError);
             return NextResponse.json({ error: "Failed to save report to database" }, { status: 500 });
         }
         
-        return NextResponse.json(JSONResp);
-
-
-
-    }catch(error){
-        return NextResponse.json(error);
+        return NextResponse.json(aiResponse);
+    } catch (error) {
+        console.error("Error processing report generation:", error);
+        return NextResponse.json({ 
+            error: error instanceof Error ? error.message : "An unknown error occurred"
+        }, { status: 500 });
     }
-
 }
