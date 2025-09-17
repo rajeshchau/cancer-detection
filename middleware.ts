@@ -1,24 +1,13 @@
-import { clerkMiddleware } from '@clerk/nextjs/server'
+import { clerkMiddleware, ClerkMiddleware } from '@clerk/nextjs/server'
 
 export default clerkMiddleware({
-  publicRoutes: [
-    "/",
-    "/sign-in(.*)",
-    "/sign-up(.*)",
-    "/api(.*)"
-  ],
-  // Routes that can always be accessed, and have
-  // no authentication information
-  ignoredRoutes: [
-    "/no-auth-in-this-route(.*)"
-  ],
+  debug: true,
+  // Add debug mode to help diagnose issues
 } as any);
 
 export const config = {
   matcher: [
-    // Skip Next.js internals and all static files, unless found in search params
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
-    // Always run for API routes
-    '/(api|trpc)(.*)',
+    // Only apply middleware to these routes, skipping API routes
+    "/((?!api|_next/static|_next/image|favicon.ico).*)",
   ],
 }

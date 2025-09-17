@@ -7,6 +7,9 @@ import { BarChart3, FileText, TrendingUp } from 'lucide-react';
 import axios from 'axios';
 import ProtectedRoute from '@/components/ProtectedRoute';
 
+// Add export const dynamic for Next.js
+export const dynamic = 'force-dynamic';
+
 interface DashboardStats {
   totalReports: number;
   cancerPositive: number;
@@ -21,9 +24,11 @@ export default function Dashboard() {
     cancerPositive: 0,
     averageConfidence: 0
   });
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
+      setIsLoading(true);
       try {
         // Fetch latest statistics
         const statsResponse = await axios.get('/api/dashboard/stats');
@@ -38,11 +43,18 @@ export default function Dashboard() {
         }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
+        // Use default values on error
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    fetchDashboardData();
+    // Only fetch on client-side
+    if (typeof window !== 'undefined') {
+      fetchDashboardData();
+    }
   }, [sessionId]);
+  
   const statCards = [
     {
       name: 'Total Reports',
@@ -91,7 +103,9 @@ export default function Dashboard() {
                     </div>
                     <div className="ml-4">
                       <p className="text-sm font-medium text-gray-600">{stat.name}</p>
-                      <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {isLoading ? "Loading..." : stat.value}
+                      </p>
                     </div>
                   </div>
                 </div>

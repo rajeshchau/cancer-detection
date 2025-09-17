@@ -25,19 +25,22 @@ export default function Upload() {
     setResult(null);
 
     try {
+      console.log("Starting PDF upload process...");
+
       // Step 1: Upload and process PDF
       const formData = new FormData();
       formData.append('pdf', file);
 
+      console.log("Sending PDF to /api/pdf-to-json...");
       const pdfResponse = await axios.post('/api/pdf-to-json', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
       console.log("PDF Processing Response:", pdfResponse.data);
 
-      // if (!pdfResponse.data || typeof pdfResponse.data !== 'object') {
-      //   throw new Error("Invalid PDF processing response");
-      // }
+      if (!pdfResponse.data || typeof pdfResponse.data !== 'object') {
+        throw new Error("Invalid PDF processing response: " + JSON.stringify(pdfResponse.data));
+      }
 
       // Step 2: Send to AI for analysis
       const aiRequestData = {
@@ -46,13 +49,14 @@ export default function Upload() {
         pdfContent: pdfResponse.data // Send the entire paginated content
       };
 
+      console.log("Sending data to /api/report-generation...");
       const aiResponse = await axios.post('/api/report-generation', aiRequestData);
 
       console.log("AI Analysis Response:", aiResponse.data);
 
-      // if (!aiResponse.data?.report) {
-      //   throw new Error("Invalid AI analysis response");
-      // }
+      if (!aiResponse.data) {
+        throw new Error("Invalid AI analysis response: " + JSON.stringify(aiResponse.data));
+      }
 
       // Step 3: Set the result for display
       const report = aiResponse.data;
@@ -65,15 +69,23 @@ export default function Upload() {
         createdAt: report.createdAt
       });
 
-      // Step 4: Store session ID for dashboard access
-      // localStorage.setItem('lastSessionId', aiRequestData.sessionId);
-
-      // Step 5: Redirect to dashboard after successful analysis
-      // window.location.href = `/dashboard?sessionId=${aiRequestData.sessionId}`;
-
     } catch (error) {
       console.error("Error during file upload or analysis:", error);
+      
+      // Get more detailed error information
+      if (axios.isAxiosError(error)) {
+        console.error("API Error Details:", {
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          data: error.response?.data,
+          url: error.config?.url
+        });
+      }
+      
       setResult(null);
+      
+      // Display error to user (could add a UI element for this)
+      alert(`Error processing file: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setIsAnalyzing(false);
     }

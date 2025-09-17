@@ -47,9 +47,12 @@ export default function ReportTable() {
     const fetchReports = async () => {
       try {
         setLoading(true);
-        const response = await axios.get('/api/data?sessionId=all');
-        if (response.data) {
-          setReports(response.data);
+        // Only fetch on client-side
+        if (typeof window !== 'undefined') {
+          const response = await axios.get('/api/data?sessionId=all');
+          if (response.data) {
+            setReports(response.data);
+          }
         }
       } catch (err) {
         console.error('Error fetching reports:', err);
