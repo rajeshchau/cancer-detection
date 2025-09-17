@@ -5,6 +5,12 @@ Welcome to the **Cancer Detection** project—a super cool Next.js web app desig
 ## 📖 What's This All About?
 Imagine a world where spotting cancer is as easy as uploading an image. That’s what we’re building here! This Next.js-powered app provides a sleek, user-friendly platform for healthcare pros and researchers to analyze medical data and catch cancer in its tracks. With real-time updates, a snappy UI, and some serious tech under the hood, this project is your ticket to making a difference. 💪
 
+<img width="1919" height="1029" alt="image" src="https://github.com/user-attachments/assets/b7149a0e-4373-41c0-a8e5-baba82986568" />
+
+<img width="1919" height="1026" alt="image" src="https://github.com/user-attachments/assets/72bf6fb8-700f-4100-8b84-745a0f9aabe5" />
+
+
+
 ## 🌈 Features That Rock
 - 📸 **Upload & Analyze**: Toss in medical images and let our app work its magic.
 - 🖼️ **Slick Interface**: A responsive, modern UI that’s as smooth as butter.
