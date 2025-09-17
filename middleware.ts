@@ -8,8 +8,11 @@ export default clerkMiddleware();
 // Define the matcher to ensure middleware only runs where needed
 export const config = {
   matcher: [
-    // Only apply middleware to these routes, skipping API routes
+    // Only apply middleware to these routes, skipping some API routes
     // which could cause issues during build
-    "/((?!api|_next/static|_next/image|favicon.ico).*)",
+    "/((?!_next/static|_next/image|favicon.ico).*)",
+    "/api/data",
+    "/api/dashboard/(.*)",
+    "/api/reports/(.*)",
   ],
 }

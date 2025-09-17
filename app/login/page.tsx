@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useSignIn } from '@clerk/nextjs';
 
 export default function Login() {
   const [formData, setFormData] = useState({
@@ -11,17 +13,46 @@ export default function Login() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const { signIn, isLoaded: clerkLoaded } = useSignIn();
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError('');
     
-    // Simulate API call
-    setTimeout(() => {
-      console.log('Login data:', formData);
+    if (!clerkLoaded) {
+      setError('Authentication service not available');
       setIsLoading(false);
-      alert('Login successful! (Check console for data)');
-    }, 1000);
+      return;
+    }
+
+    try {
+      // Try to sign in with email and password
+      const result = await signIn.create({
+        identifier: formData.email,
+        password: formData.password,
+      });
+
+      if (result.status === 'complete') {
+        // Redirect to dashboard after successful login
+        router.push('/dashboard');
+      } else {
+        // Handle other Clerk sign-in states
+        setError('Unable to sign in. Please check your credentials.');
+      }
+    } catch (err: any) {
+      console.error('Sign-in error:', err);
+      setError(err.message || 'An error occurred during sign in');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDemoMode = () => {
+    localStorage.setItem('demoMode', 'true');
+    router.push('/dashboard');
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -39,6 +70,12 @@ export default function Login() {
             <h2 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h2>
             <p className="text-gray-600">Sign in to your account to continue</p>
           </div>
+
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
@@ -112,6 +149,17 @@ export default function Login() {
               {isLoading ? 'Signing in...' : 'Login'}
             </button>
           </form>
+
+          {process.env.NODE_ENV !== 'production' && (
+            <div className="mt-4">
+              <button
+                onClick={handleDemoMode}
+                className="w-full bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+              >
+                Continue in Demo Mode
+              </button>
+            </div>
+          )}
 
           <div className="mt-6 text-center">
             <p className="text-gray-600">
