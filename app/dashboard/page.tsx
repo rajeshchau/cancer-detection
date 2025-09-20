@@ -14,6 +14,7 @@ interface DashboardStats {
   totalReports: number;
   cancerPositive: number;
   averageConfidence: number;
+  positiveAverageConfidence?: number;
 }
 
 export default function Dashboard() {
@@ -22,7 +23,8 @@ export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats>({
     totalReports: 0,
     cancerPositive: 0,
-    averageConfidence: 0
+    averageConfidence: 0,
+    positiveAverageConfidence: 0
   });
   const [isLoading, setIsLoading] = useState(true);
 
@@ -76,6 +78,13 @@ export default function Dashboard() {
       icon: BarChart3,
       color: 'text-green-600',
       bgColor: 'bg-green-100',
+    },
+    {
+      name: 'Positive Avg Confidence',
+      value: stats.positiveAverageConfidence ? `${(stats.positiveAverageConfidence || 0).toFixed(1)}%` : '0%',
+      icon: BarChart3,
+      color: 'text-purple-600',
+      bgColor: 'bg-purple-100',
     },
   ];
 

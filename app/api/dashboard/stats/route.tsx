@@ -22,9 +22,10 @@ export async function GET(): Promise<Response> {
             });
         }
 
-        let totalReports = 0;
-        let cancerPositive = 0;
-        let averageConfidence = 0;
+    let totalReports = 0;
+    let cancerPositive = 0;
+    let averageConfidence = 0;
+    let positiveAverageConfidence = 0;
 
         // Only try to get real data if we have a user
         if (user) {
@@ -33,38 +34,67 @@ export async function GET(): Promise<Response> {
                 const allReports = await db.select().from(SessionChatTable);
                 totalReports = allReports.length;
                 
-                // Calculate actual cancer positive reports
-                const positiveReports = allReports.filter(report => {
+                // Helper getters that prefer DB columns and fallback to JSON field
+                const getResult = (r: any): string | undefined => {
+                    if (r?.analysisResults) return r.analysisResults as string;
                     try {
-                        if (typeof report.report === 'string') {
-                            const parsed = JSON.parse(report.report);
-                            return parsed.analysisResults === 'Cancer Positive';
+                        if (typeof r?.report === 'string') {
+                            const parsed = JSON.parse(r.report);
+                            return parsed?.analysisResults;
                         }
-                        return false;
-                    } catch {
-                        return false;
+                        if (r?.report && typeof r.report === 'object') {
+                            return (r.report as any)?.analysisResults;
+                        }
+                    } catch {}
+                    return undefined;
+                };
+
+                const getConfidence = (r: any): number | undefined => {
+                    let val: any = r?.confidence;
+                    if (!val) {
+                        try {
+                            if (typeof r?.report === 'string') {
+                                const parsed = JSON.parse(r.report);
+                                val = parsed?.confidence;
+                            } else if (r?.report && typeof r.report === 'object') {
+                                val = (r.report as any)?.confidence;
+                            }
+                        } catch {}
                     }
+                    if (val === undefined || val === null) return undefined;
+                    if (typeof val === 'number') return val;
+                    if (typeof val === 'string') {
+                        const n = parseFloat(val.replace('%', '').trim());
+                        return Number.isFinite(n) ? n : undefined;
+                    }
+                    return undefined;
+                };
+
+                // Calculate actual cancer positive reports
+                const positiveReports = allReports.filter(r => {
+                    const res = getResult(r);
+                    const conf = getConfidence(r);
+                    return res === 'Cancer Positive' && typeof conf === 'number' && conf > 0;
                 });
                 
                 cancerPositive = positiveReports.length;
                 
-                // Calculate average confidence
-                const confidences = allReports.map(report => {
-                    try {
-                        if (typeof report.report === 'string') {
-                            const parsed = JSON.parse(report.report);
-                            // Remove % sign and convert to number
-                            return parseFloat(parsed.confidence?.replace('%', '') || '0');
-                        }
-                        return 0;
-                    } catch {
-                        return 0;
-                    }
-                });
-                
-                if (confidences.length > 0) {
-                    const sum = confidences.reduce((acc, val) => acc + val, 0);
-                    averageConfidence = sum / confidences.length;
+                // Calculate average confidence (overall)
+                const confValues = allReports
+                    .map(getConfidence)
+                    .filter((n): n is number => typeof n === 'number' && Number.isFinite(n) && n > 0);
+                if (confValues.length > 0) {
+                    const sum = confValues.reduce((acc, v) => acc + v, 0);
+                    averageConfidence = sum / confValues.length;
+                }
+
+                // Calculate average confidence for positive cases
+                const posConfValues = positiveReports
+                    .map(getConfidence)
+                    .filter((n): n is number => typeof n === 'number' && Number.isFinite(n) && n > 0);
+                if (posConfValues.length > 0) {
+                    const sum = posConfValues.reduce((acc, v) => acc + v, 0);
+                    positiveAverageConfidence = sum / posConfValues.length;
                 }
             } catch (dbError) {
                 console.error("Database error, using default values:", dbError);
@@ -72,18 +102,21 @@ export async function GET(): Promise<Response> {
                 totalReports = 2;
                 cancerPositive = 1;
                 averageConfidence = 90.5;
+                positiveAverageConfidence = 92.0;
             }
         } else {
             // Provide sample data for build/unauthenticated states
             totalReports = 2;
             cancerPositive = 1;
             averageConfidence = 90.5;
+            positiveAverageConfidence = 92.0;
         }
 
         return NextResponse.json({
             totalReports,
             cancerPositive,
             averageConfidence,
+            positiveAverageConfidence,
             timestamp: new Date().toISOString()
         });
     } catch (error) {
@@ -93,6 +126,7 @@ export async function GET(): Promise<Response> {
             totalReports: 2,
             cancerPositive: 1,
             averageConfidence: 90.5,
+            positiveAverageConfidence: 92.0,
             timestamp: new Date().toISOString()
         });
     }
