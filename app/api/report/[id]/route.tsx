@@ -18,7 +18,7 @@ export async function GET(
             }, { status: 400 });
         }
 
-        // Get report from database
+        // Get report from database using simplified schema
         const report = await db
             .select()
             .from(SessionChatTable)
