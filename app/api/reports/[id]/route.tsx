@@ -24,7 +24,12 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
         // First try to find by id
         let sessionData = await db
-            .select()
+            .select({
+                id: SessionChatTable.id,
+                sessionId: SessionChatTable.sessionId,
+                report: SessionChatTable.report,
+                createdAt: SessionChatTable.createdAt
+            })
             .from(SessionChatTable)
             .where(eq(SessionChatTable.id, parseInt(reportId)))
             .limit(1);
@@ -32,7 +37,12 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         // If not found by id, try to find by sessionId
         if (sessionData.length === 0) {
             sessionData = await db
-                .select()
+                .select({
+                    id: SessionChatTable.id,
+                    sessionId: SessionChatTable.sessionId,
+                    report: SessionChatTable.report,
+                    createdAt: SessionChatTable.createdAt
+                })
                 .from(SessionChatTable)
                 .where(eq(SessionChatTable.sessionId, reportId))
                 .limit(1);
@@ -44,11 +54,26 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
         const session = sessionData[0];
 
-        // For demo purposes, provide sample data for specific report IDs
-        let analysisResults = session.analysisResults || 'Processing';
-        let confidence = session.confidence || 'N/A';
-        let evidence = session.evidence || '';
-        let extractedText = session.extractedText || '';
+        // Parse report JSON to extract analysis data
+        let analysisResults = 'Processing';
+        let confidence = 'N/A';
+        let evidence = '';
+        let extractedText = '';
+
+        try {
+            if (session.report) {
+                const reportData = typeof session.report === 'string' 
+                    ? JSON.parse(session.report) 
+                    : session.report;
+                
+                analysisResults = reportData.analysisResults || 'Processing';
+                confidence = reportData.confidence || 'N/A';
+                evidence = reportData.evidence || '';
+                extractedText = reportData.extractedText || '';
+            }
+        } catch (parseError) {
+            console.error("Error parsing report JSON:", parseError);
+        }
 
         // If ID is 1, use the sample blood cancer report
         if (session.id === 1) {
@@ -78,9 +103,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
             confidence: confidence,
             evidence: evidence,
             extractedText: extractedText,
-            createdAt: session.createdAt,
-            notes: session.notes,
-            conversation: session.conversation,
+            createdAt: session.createdAt
         };
 
         return NextResponse.json(report);
